@@ -4,80 +4,56 @@ import { useData } from "@/hooks/useData";
 import 'chart.js/auto';
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { DropdownMenu, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "./ui/select";
+import { useFilter } from "@/hooks/useFilter";
+import ChartjsLine from "./charts/chartjs-Line";
+import ChartjsPie from "./charts/chartjs-Pie";
+import ApexChartPie from "./charts/apexchart-Pie";
+import ApexChartLine from "./charts/apexchart-Line";
 
 export default function ShowChart(params) {
     const { data: datas = {}, isLoading } = useData();
     const [labels, setLabels] = useState([]);
     const [datasets, setDatasets] = useState([]);
+    const [labelsApexLine, setLabelsApexLine] = useState({});
+    const [datasetsApexLine, setDatasetsApexLine] = useState([]);
+    const [labelsApexPie, setLabelsApexPie] = useState({});
+    const [datasetsApexPie, setDatasetsApexPie] = useState([]);
     const [dateFrom, setDateFrom] = useState(null);
     const [dateTo, setDateTo] = useState(null);
     const [backgroundColors, setBackgroundColors] = useState([]);
+    const { filter, setFilter } = useFilter();
 
-    console.log(datas, isLoading);
-
-    const Line = dynamic(() => import('react-chartjs-2').then((mod) => mod.Line), {
-        ssr: false,
-    });
-
-    const Pie = dynamic(() => import('react-chartjs-2').then((mod) => mod.Pie), {
-        ssr: false,
-    });
-
-    const getRandomColor = () => {
-        const letters = '0123456789ABCDEF';
-        let color = '#';
-        for (let i = 0; i < 6; i++) {
-            color += letters[Math.floor(Math.random() * 16)];
-        }
-        return color;
-    };
-
-    const data = {
-        labels: labels,
-        datasets: [
-            {
-                label: isLoading ? [] : datas.source[0].measures[0],
-                data: datasets,
-                fill: false,
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: backgroundColors,
-                tension: 0.1,
-            },
-        ],
-    };
+    // console.log(datas, isLoading);
 
     const handleChangeDateFrom = (value) => {
-        setDateFrom(value)
+        setFilter({
+            ...filter,
+            from: value,
+        })
     }
 
     const handleChangeDateTo = (value) => {
-        setDateTo(value)
+        setFilter({
+            ...filter,
+            to: value,
+        })
     }
 
     useEffect(() => {
         if (!isLoading) {
-            let from = dateFrom;
-            let to = dateTo;
-    
+            let from = filter.from;
+            let to = filter.to;
+
             if (dateFrom == null && dateTo == null) {
                 from = datas.data[datas.data.length - 1]?.Year;
                 to = datas.data[0]?.Year;
-                setDateFrom(from);
-                setDateTo(to);
+                setFilter({
+                    ...filter,
+                    from: from,
+                    to: to
+                })
             }
-    
-            // console.log(from, to);
-            
-            const filteredData = datas.data.filter(item => {
-                const year = parseInt(item.Year, 10);
-                return year >= from && year <= to;
-            });
-    
-            setLabels(filteredData.map(data => data.Year).reverse());
-            setDatasets(filteredData.map(data => data.Population).reverse());
-            setBackgroundColors(labels.map(() => getRandomColor()));
         }
     }, [isLoading, dateFrom, dateTo]);
 
@@ -120,43 +96,49 @@ export default function ShowChart(params) {
                     </div>
                     <div className="mb-8">
                         {!isLoading &&
-                            <div className="flex">
-                                <span className="px-2">From : </span>
-                                <Select defaultValue={dateFrom} onValueChange={handleChangeDateFrom}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Select a " />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            {/* <SelectLabel>Fruits</SelectLabel> */}
-                                            {!isLoading && datas.data.map((population, index) =>
-                                                <SelectItem key={index} value={population["Year"]}>{population["Year"]}</SelectItem>
-                                            )}
-                                            {/* <SelectItem value="apple">Apple</SelectItem>
+                            <>
+                                <div className="flex">
+                                    <span className="px-2">From : </span>
+                                    <Select defaultValue={dateFrom} onValueChange={handleChangeDateFrom}>
+                                        <SelectTrigger className="w-[180px]">
+                                            <SelectValue placeholder="Select a " />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                {/* <SelectLabel>Fruits</SelectLabel> */}
+                                                {!isLoading && datas.data.map((population, index) =>
+                                                    <SelectItem key={index} value={population["Year"]}>{population["Year"]}</SelectItem>
+                                                )}
+                                                {/* <SelectItem value="apple">Apple</SelectItem>
                                         <SelectItem value="banana">Banana</SelectItem>
                                         <SelectItem value="blueberry">Blueberry</SelectItem>
                                         <SelectItem value="grapes">Grapes</SelectItem>
                                         <SelectItem value="pineapple">Pineapple</SelectItem> */}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                                <span className="px-2">To : </span>
-                                <Select defaultValue={dateTo} onValueChange={handleChangeDateTo}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Select a " />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            {!isLoading && datas.data.map((population, index) =>
-                                                <SelectItem key={index} value={population["Year"]}>{population["Year"]}</SelectItem>
-                                            )}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                    <span className="px-2">To : </span>
+                                    <Select defaultValue={dateTo} onValueChange={handleChangeDateTo}>
+                                        <SelectTrigger className="w-[180px]">
+                                            <SelectValue placeholder="Select a " />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                {!isLoading && datas.data.map((population, index) =>
+                                                    <SelectItem key={index} value={population["Year"]}>{population["Year"]}</SelectItem>
+                                                )}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="text-gray-900 font-bold text-xl my-2">Using ApexChart</div>
+                                <ApexChartLine datas={datas} />
+                                <ApexChartPie datas={datas} />
+                                <div className="text-gray-900 font-bold text-xl my-2">Using Chart.JS</div>
+                                <ChartjsLine datas={datas} />
+                                <ChartjsPie datas={datas} />
+                            </>
                         }
-                        <Line data={data} />
-                        <Pie data={data} />
                     </div>
                     <div className="flex items-center">
                         <div className="text-sm">
